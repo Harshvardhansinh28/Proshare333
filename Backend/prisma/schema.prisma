@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  username  String    @unique
+  password  String
+  bio       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  projects  Project[]
+  orders    Order[]
+}
+
+model Project {
+  id             String    @id @default(uuid())
+  slug           String    @unique
+  title          String
+  description    String
+  priceInCents   Int?
+  currency       String    @default("usd")
+  isPublic       Boolean   @default(true)
+  category       String?
+  repoUrl        String?
+  demoUrl        String?
+  thumbnailUrl   String?
+  assetKey       String?
+
+  ownerId        String
+  owner          User      @relation(fields: [ownerId], references: [id])
+
+  orders         Order[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Order {
+  id                   String       @id @default(uuid())
+  buyerId              String
+  buyer                User         @relation("UserOrders", fields: [buyerId], references: [id])
+
+  projectId            String
+  project              Project      @relation(fields: [projectId], references: [id])
+
+  amountInCents        Int
+  currency             String       @default("usd")
+  status               OrderStatus  @default(PENDING)
+  stripePaymentIntentId String?
+
+  createdAt            DateTime     @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  REQUIRES_ACTION
+  COMPLETED
+  CANCELED
+}

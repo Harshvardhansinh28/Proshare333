@@ -1,0 +1,23 @@
+{
+"compilerOptions": {
+"module": "commonjs",
+"target": "ES2021",
+"lib": ["ES2021"],
+"declaration": false,
+"types": ["node"],
+"sourceMap": true,
+"outDir": "./dist",
+"rootDir": "./src",
+"removeComments": true,
+"emitDecoratorMetadata": true,
+"experimentalDecorators": true,
+"allowSyntheticDefaultImports": true,
+"esModuleInterop": true,
+"incremental": true,
+"skipLibCheck": true,
+"strictNullChecks": false,
+"noImplicitAny": false
+},
+"include": ["src/**/*"],
+"exclude": ["node_modules", "dist"]
+}

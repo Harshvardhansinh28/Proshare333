@@ -3,8 +3,8 @@ services:
     name: proshare-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:prod
+    buildCommand: cd Backend && npm install && npm run build
+    startCommand: cd Backend && npm run start:prod
     envVars:
       - key: DATABASE_URL
         fromDatabase:

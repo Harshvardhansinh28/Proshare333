@@ -4,8 +4,11 @@
   "engines": {
     "node": "20.x"
   },
+  "workspaces": [
+    "frontend",
+    "Backend"
+  ],
   "scripts": {
-    "build": "npm run build --prefix frontend",
-    "install": "npm install --prefix frontend"
+    "build": "npm run build -w frontend"
   }
 }

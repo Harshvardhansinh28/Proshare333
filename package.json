@@ -1,0 +1,11 @@
+{
+  "name": "proshare-ecosystem",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "build": "npm run build --prefix frontend",
+    "install": "npm install --prefix frontend"
+  }
+}

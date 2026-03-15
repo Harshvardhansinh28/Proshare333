@@ -35,7 +35,7 @@
     "prisma": "^7.5.0"
   },
   "scripts": {
-    "build": "nest build",
+    "build": "npx prisma generate && nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

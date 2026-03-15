@@ -49,15 +49,19 @@ async function bootstrap() {
     app.use('/public', express.static((0, path_1.join)(__dirname, '..', 'public')));
     app.use((0, helmet_1.default)());
     app.use((0, compression_1.default)());
+    const frontendUrl = process.env.FRONTEND_URL;
+    const origins = [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
+    ];
+    if (frontendUrl)
+        origins.push(frontendUrl);
     app.enableCors({
-        origin: [
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://127.0.0.1:5173',
-            'http://127.0.0.1:5174',
-        ],
+        origin: origins,
         credentials: true,
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         allowedHeaders: 'Content-Type, Accept, Authorization',

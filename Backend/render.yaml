@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: proshare-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: proshare-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        placeholder: "Paste your Vercel URL here (e.g., https://proshare.vercel.app)"
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: proshare-db
+    plan: free
+    databaseName: proshare
+    user: proshare_admin

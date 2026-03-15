@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        placeholder: "Paste your Vercel URL here (e.g., https://proshare.vercel.app)"
+        value: https://your-vercel-app.vercel.app # Update this with your Vercel URL after deployment
       - key: NODE_ENV
         value: production
 

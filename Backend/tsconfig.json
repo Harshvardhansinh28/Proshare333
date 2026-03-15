@@ -4,7 +4,7 @@
 "target": "ES2021",
 "lib": ["ES2021"],
 "declaration": false,
-"types": ["node"],
+"types": ["node", "multer"],
 "sourceMap": true,
 "outDir": "./dist",
 "rootDir": "./src",

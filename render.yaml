@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://your-vercel-app.vercel.app # Update this with your Vercel URL after deployment
+        value: https://proshare333-frontend-ysbq.vercel.app
       - key: NODE_ENV
         value: production
 

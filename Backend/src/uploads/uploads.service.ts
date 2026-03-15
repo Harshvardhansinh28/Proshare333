@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Injectable } from '@nestjs/common';
 import { join } from 'path';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';

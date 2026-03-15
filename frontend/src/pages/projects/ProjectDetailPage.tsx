@@ -59,7 +59,7 @@ export function ProjectDetailPage() {
   if (loading) return <div className="text-center py-20 text-muted font-mono animate-pulse">Scanning infrastructure...</div>
   if (!project) return <div className="text-center py-20 text-muted">Project not found.</div>
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL
   const getFullUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith('http')) return url

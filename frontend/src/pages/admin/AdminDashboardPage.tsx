@@ -108,7 +108,7 @@ export function AdminDashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-list', 'Users'] }),
   })
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL
   const getFullUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith('http')) return url

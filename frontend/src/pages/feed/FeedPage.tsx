@@ -153,7 +153,7 @@ export function FeedPage() {
     }
   }
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL
   const getFullUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith('http')) return url
@@ -171,7 +171,7 @@ export function FeedPage() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-200 to-brand-300" />
           <div className="flex gap-4 items-start">
             <img 
-              src={getFullUrl(user?.avatarUrl) || `https://i.pravatar.cc/150?u=${user?.id}`} 
+              src={getFullUrl(user?.avatarUrl ?? null) || `https://i.pravatar.cc/150?u=${user?.id}`} 
               alt="You" 
               className="w-12 h-12 rounded-full border border-white/20 object-cover" 
             />

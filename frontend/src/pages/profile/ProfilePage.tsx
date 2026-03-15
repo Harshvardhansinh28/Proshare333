@@ -153,7 +153,7 @@ export function ProfilePage() {
   if (loading) return <div className="text-center py-20 text-muted">Loading profile...</div>
   if (!profile) return <div className="text-center py-20 text-muted">Profile not found</div>
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const baseUrl = import.meta.env.VITE_API_URL
   const getFullUrl = (url: string | null) => {
     if (!url) return null
     if (url.startsWith('http')) return url

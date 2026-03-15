@@ -1,4 +1,5 @@
-import { IsBoolean, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min, MinLength } from 'class-validator'
+import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min, MinLength } from 'class-validator'
+import { MonetizationType } from '@prisma/client'
 
 export class CreateProjectDto {
   @IsString()
@@ -21,6 +22,15 @@ export class CreateProjectDto {
   category?: string
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[]
+
+  @IsOptional()
+  @IsEnum(MonetizationType)
+  monetizationType?: MonetizationType
+
+  @IsOptional()
   @IsUrl()
   repoUrl?: string
 
@@ -31,5 +41,14 @@ export class CreateProjectDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  isProduct?: boolean
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  opportunities?: string[]
 }
 

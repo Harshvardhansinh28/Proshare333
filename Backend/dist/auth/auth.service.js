@@ -53,44 +53,63 @@ let AuthService = class AuthService {
         this.jwt = jwt;
     }
     async register(data) {
+        const existing = await this.prisma.user.findFirst({
+            where: {
+                OR: [{ email: data.email }, { username: data.username }],
+            },
+        });
+        if (existing) {
+            throw new common_1.ConflictException('User with given email or username exists');
+        }
         const hashedPassword = await bcrypt.hash(data.password, 10);
         const user = await this.prisma.user.create({
             data: {
                 email: data.email,
                 username: data.username,
-                password: hashedPassword
-            }
+                password: hashedPassword,
+                category: data.category,
+                role: 'USER',
+            },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                bio: true,
+                role: true,
+                category: true,
+                createdAt: true,
+            },
         });
         return {
-            message: "User registered",
-            user
+            message: 'User registered',
+            user,
         };
     }
     async login(data) {
         const user = await this.prisma.user.findUnique({
-            where: { email: data.email }
+            where: { email: data.email },
         });
         if (!user) {
-            return { error: "User not found" };
+            throw new common_1.BadRequestException('Invalid credentials');
         }
         const valid = await bcrypt.compare(data.password, user.password);
         if (!valid) {
-            return { error: "Invalid password" };
+            throw new common_1.UnauthorizedException('Invalid credentials');
         }
         const token = this.jwt.sign({
             userId: user.id,
-            email: user.email
+            email: user.email,
+            role: user.role,
         });
         return {
-            message: "Login successful",
-            token
+            message: 'Login successful',
+            token,
         };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, jwt_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

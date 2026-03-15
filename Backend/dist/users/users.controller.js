@@ -15,9 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_guard_1 = require("../auth/jwt.guard");
+const users_service_1 = require("./users.service");
 let UsersController = class UsersController {
+    constructor(usersService) {
+        this.usersService = usersService;
+    }
     getProfile(req) {
-        return req.user;
+        const userId = req.user.userId;
+        return this.usersService.getMe(userId);
     }
 };
 exports.UsersController = UsersController;
@@ -30,6 +35,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "getProfile", null);
 exports.UsersController = UsersController = __decorate([
-    (0, common_1.Controller)('users')
+    (0, common_1.Controller)('users'),
+    __metadata("design:paramtypes", [users_service_1.UsersService])
 ], UsersController);
 //# sourceMappingURL=users.controller.js.map

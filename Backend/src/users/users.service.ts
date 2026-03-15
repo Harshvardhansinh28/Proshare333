@@ -13,7 +13,10 @@ export class UsersService {
         email: true,
         username: true,
         bio: true,
+        avatarUrl: true,
+        role: true,
         createdAt: true,
+        profile: true,
       },
     })
 

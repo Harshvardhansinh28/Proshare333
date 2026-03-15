@@ -21,8 +21,9 @@ export class ProjectsController {
   getPublicProjects(
     @Query('search') search?: string,
     @Query('category') category?: string,
+    @Query('ownerId') ownerId?: string,
   ) {
-    return this.projectsService.getProjects({ search, category })
+    return this.projectsService.getProjects({ search, category, ownerId })
   }
 
   @Get(':slug')
@@ -31,11 +32,17 @@ export class ProjectsController {
   }
 
   @UseGuards(JwtGuard)
+  @Post(':slug/publish')
+  publish(@Param('slug') slug: string, @Req() req: any) {
+    return this.projectsService.publish(slug, req.user.userId)
+  }
+
+  @UseGuards(JwtGuard)
   @Post(':slug/asset')
   @UseInterceptors(FileInterceptor('file'))
   uploadAsset(
     @Param('slug') slug: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string },
     @Body() body: UploadAssetDto,
     @Req() req: any,
   ) {

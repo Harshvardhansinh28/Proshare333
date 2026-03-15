@@ -4,7 +4,21 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & Users ─────────────────────────────────────────────────────────
+enum UserRole {
+  ADMIN
+  USER
+  BANNED
+}
+
+enum UserCategory {
+  STUDENT
+  FREELANCER
+  RECRUITER
+  DEVELOPER
+  TECH_ENTHUSIAST
 }
 
 model User {
@@ -12,51 +26,132 @@ model User {
   email     String    @unique
   username  String    @unique
   password  String
+  role      UserRole  @default(USER)
+  category  UserCategory @default(DEVELOPER)
   bio       String?
+  avatarUrl String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  projects  Project[]
-  orders    Order[]
+  profile      Profile?
+  projects     Project[]
+  orders       Order[]              @relation("UserOrders")
+  wallet       Wallet?
+  subscriptions Subscription[]
+  likes       Like[]
+  comments    Comment[]
+  posts       Post[]
+  following   Follow[]              @relation("UserFollowing")
+  followers   Follow[]              @relation("UserFollowers")
+  sentMessages     Message[]        @relation("SentMessages")
+  conversationParticipants ConversationParticipant[]
+  projectCredentials ProjectCredential[]
+  adminActivities   AdminActivity[]
+  reports           Report[]              @relation("ReportedBy")
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline      String?
+  resumeUrl     String?
+  githubUrl     String?
+  portfolioUrl  String?
+  linkedinUrl   String?
+  location      String?
+  skills        String[] // tags for recruiter search
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── Projects & Monetization ──────────────────────────────────────────────
+enum MonetizationType {
+  SOURCE_CODE
+  API
+  SAAS
+  AI_MODEL
+  DATASET
+  TEMPLATE
+  MICROSERVICE
 }
 
 model Project {
-  id             String    @id @default(uuid())
-  slug           String    @unique
-  title          String
-  description    String
-  priceInCents   Int?
-  currency       String    @default("usd")
-  isPublic       Boolean   @default(true)
-  category       String?
-  repoUrl        String?
-  demoUrl        String?
-  thumbnailUrl   String?
-  assetKey       String?
+  id               String            @id @default(uuid())
+  slug             String            @unique
+  title            String
+  description      String
+  priceInCents     Int?
+  currency         String            @default("usd")
+  isPublic         Boolean           @default(true)
+  category         String?
+  tags             String[]         // for search & recruiter
+  repoUrl          String?
+  demoUrl          String?
+  thumbnailUrl     String?
+  assetKey         String?
+  monetizationType MonetizationType?
+  status           ProjectStatus    @default(DRAFT)
+  isProduct        Boolean           @default(false)
+  opportunities    String[]          // investors, recruiters, collaborators
 
-  ownerId        String
-  owner          User      @relation(fields: [ownerId], references: [id])
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  rating    ProjectRating?
+  orders    Order[]
+  likes     Like[]
+  comments  Comment[]
+  credentials ProjectCredential[]
+  deployments DeploymentLog[]
 
-  orders         Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  @@index([ownerId])
+  @@index([isPublic, category])
+  @@index([tags])
+  @@index([createdAt])
 }
 
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ProjectRating {
+  id              String   @id @default(uuid())
+  projectId       String   @unique
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  aiScore         Int?     // 0-100
+  backendScore    Int?
+  frontendScore   Int?
+  systemDesignScore Int?
+  complexityNote  String?
+  scalabilityNote String?
+  evaluatedAt     DateTime @default(now())
+}
+
+// ─── Orders, Wallet, Platform Fee (5% / 95%) ───────────────────────────────
 model Order {
-  id                   String       @id @default(uuid())
-  buyerId              String
-  buyer                User         @relation("UserOrders", fields: [buyerId], references: [id])
-
-  projectId            String
-  project              Project      @relation(fields: [projectId], references: [id])
-
-  amountInCents        Int
-  currency             String       @default("usd")
-  status               OrderStatus  @default(PENDING)
+  id                    String      @id @default(uuid())
+  buyerId               String
+  buyer                 User        @relation("UserOrders", fields: [buyerId], references: [id])
+  projectId             String
+  project               Project     @relation(fields: [projectId], references: [id])
+  amountInCents          Int
+  platformFeeCents      Int         // 5%
+  sellerAmountCents     Int         // 95%
+  currency              String      @default("usd")
+  status                OrderStatus @default(PENDING)
   stripePaymentIntentId String?
+  walletCreditId        String?     @unique // when COMPLETED, credit seller wallet
+  createdAt             DateTime    @default(now())
 
-  createdAt            DateTime     @default(now())
+  @@index([buyerId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 enum OrderStatus {
@@ -64,4 +159,244 @@ enum OrderStatus {
   REQUIRES_ACTION
   COMPLETED
   CANCELED
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceCents Int   @default(0)
+  currency  String   @default("usd")
+  updatedAt DateTime @updatedAt
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amountCents Int      // positive = credit, negative = debit (withdrawal)
+  type        WalletTransactionType
+  orderId     String?
+  withdrawalId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([walletId])
+  @@index([createdAt])
+}
+
+enum WalletTransactionType {
+  SALE_CREDIT
+  WITHDRAWAL
+  REFUND
+  ADJUSTMENT
+}
+
+model Withdrawal {
+  id          String   @id @default(uuid())
+  userId      String
+  amountCents Int
+  status      WithdrawalStatus @default(PENDING)
+  stripePayoutId String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Credentials (seller → buyer on purchase) ─────────────────────────────
+model ProjectCredential {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String   // buyer who received access
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?  // encrypted or hashed; buyer-specific
+  orderId     String
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+// ─── Subscriptions (ProShare Pro) ───────────────────────────────────────────
+enum SubscriptionTier {
+  FREE
+  PRO
+}
+
+model Subscription {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier           SubscriptionTier @default(FREE)
+  stripeSubscriptionId String?
+  stripePriceId  String?
+  currentPeriodEnd DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+// ─── Community: Likes, Comments, Follows, Posts, Feed ──────────────────────
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId, postId])
+  @@index([projectId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  mediaUrls String[]
+  likes     Like[]
+  comments  Comment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── Chat ──────────────────────────────────────────────────────────────────
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  participants ConversationParticipant[]
+  messages  Message[]
+}
+
+model ConversationParticipant {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+// ─── One-Click Deployment ───────────────────────────────────────────────────
+enum DeploymentProvider {
+  VERCEL
+  RAILWAY
+  AWS
+  DOCKER
+}
+
+model DeploymentLog {
+  id          String             @id @default(uuid())
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider    DeploymentProvider
+  status      String             // pending | building | deployed | failed
+  externalId  String?            // Vercel/Railway deployment ID
+  url         String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  @@index([projectId])
+}
+
+// ─── Admin ─────────────────────────────────────────────────────────────────
+model AdminActivity {
+  id         String   @id @default(uuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action     String
+  targetType String?  // user | project | order
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reporterId  String
+  reporter    User     @relation("ReportedBy", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType  String   // POST | PROJECT | USER
+  targetId    String
+  reason      String
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([targetId])
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
 }

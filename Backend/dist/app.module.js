@@ -8,20 +8,48 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const projects_module_1 = require("./projects/projects.module");
+const payments_module_1 = require("./payments/payments.module");
+const storage_module_1 = require("./storage/storage.module");
+const profiles_module_1 = require("./profiles/profiles.module");
+const community_module_1 = require("./community/community.module");
+const ratings_module_1 = require("./ratings/ratings.module");
+const admin_module_1 = require("./admin/admin.module");
+const subscriptions_module_1 = require("./subscriptions/subscriptions.module");
+const deployment_module_1 = require("./deployment/deployment.module");
+const ai_eval_module_1 = require("./ai-eval/ai-eval.module");
+const recruiter_module_1 = require("./recruiter/recruiter.module");
+const chat_module_1 = require("./chat/chat.module");
+const uploads_module_1 = require("./uploads/uploads.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+            }),
+            prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
-            prisma_module_1.PrismaModule,
-            projects_module_1.ProjectsModule
+            projects_module_1.ProjectsModule,
+            payments_module_1.PaymentsModule,
+            storage_module_1.StorageModule,
+            profiles_module_1.ProfilesModule,
+            community_module_1.CommunityModule,
+            ratings_module_1.RatingsModule,
+            admin_module_1.AdminModule,
+            subscriptions_module_1.SubscriptionsModule,
+            deployment_module_1.DeploymentModule,
+            ai_eval_module_1.AiEvalModule,
+            recruiter_module_1.RecruiterModule,
+            chat_module_1.ChatModule,
+            uploads_module_1.UploadsModule,
         ],
     })
 ], AppModule);

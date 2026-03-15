@@ -25,9 +25,14 @@ export class ProjectsService {
         description: data.description,
         priceInCents: data.priceInCents ?? null,
         category: data.category,
+        tags: data.tags ?? [],
+        monetizationType: data.monetizationType ?? null,
         repoUrl: data.repoUrl,
         demoUrl: data.demoUrl,
         isPublic: data.isPublic ?? true,
+        isProduct: data.isProduct ?? false,
+        opportunities: data.opportunities ?? [],
+        status: 'DRAFT',
         ownerId,
       },
       include: {
@@ -41,12 +46,14 @@ export class ProjectsService {
     })
   }
 
-  async getProjects(params?: { search?: string; category?: string }) {
-    const { search, category } = params || {}
+  async getProjects(params?: { search?: string; category?: string; ownerId?: string }) {
+    const { search, category, ownerId } = params || {}
     return this.prisma.project.findMany({
       where: {
         isPublic: true,
+        status: 'PUBLISHED',
         ...(category && { category }),
+        ...(ownerId && { ownerId }),
         ...(search && {
           OR: [
             { title: { contains: search, mode: 'insensitive' } },
@@ -60,8 +67,10 @@ export class ProjectsService {
           select: {
             id: true,
             username: true,
+            avatarUrl: true,
           },
         },
+        rating: true,
       },
     })
   }
@@ -74,8 +83,10 @@ export class ProjectsService {
           select: {
             id: true,
             username: true,
+            avatarUrl: true,
           },
         },
+        rating: true,
       },
     })
 
@@ -89,7 +100,7 @@ export class ProjectsService {
   async attachAssetToProject(
     slug: string,
     ownerId: string,
-    file: Express.Multer.File,
+    file: { buffer: Buffer; mimetype: string },
     meta: UploadAssetDto,
   ) {
     const project = await this.prisma.project.findUnique({
@@ -120,4 +131,13 @@ export class ProjectsService {
     })
   }
 
+  async publish(slug: string, ownerId: string) {
+    const project = await this.prisma.project.findUnique({ where: { slug } })
+    if (!project) throw new NotFoundException('Project not found')
+    if (project.ownerId !== ownerId) throw new ForbiddenException('Not project owner')
+    return this.prisma.project.update({
+      where: { id: project.id },
+      data: { status: 'PUBLISHED' },
+    })
+  }
 }

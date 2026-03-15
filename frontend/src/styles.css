@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #fee3d8;
+    --text-main: #1a0019;
+    --text-muted: #52285a;
+    
+    --brand-50: #fee3d8;
+    --brand-100: #d9b2ad;
+    --brand-200: #844c69;
+    --brand-300: #52285a;
+    --brand-400: #2b114e;
+    --brand-500: #1a0019;
+    
+    --glass-bg: rgba(254, 227, 216, 0.7);
+    --glass-border: rgba(132, 76, 105, 0.15);
+    
+    --shadow-3d: 0 10px 30px rgba(26, 0, 25, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    --shadow-3d-hover: 0 20px 40px rgba(26, 0, 25, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .dark {
+    --bg-main: #1a0019;
+    --text-main: #fee3d8;
+    --text-muted: #d9b2ad;
+    
+    --glass-bg: rgba(43, 17, 78, 0.4);
+    --glass-border: rgba(132, 76, 105, 0.3);
+    
+    --shadow-3d: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(217, 178, 173, 0.1);
+    --shadow-3d-hover: 0 30px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(217, 178, 173, 0.2);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-3d);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+  }
+  
+  .glass-card:hover {
+    box-shadow: var(--shadow-3d-hover);
+  }
+  
+  .text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(to right, var(--brand-100), var(--brand-200));
+  }
+  
+  .dark .text-gradient {
+    background-image: linear-gradient(to right, var(--brand-50), var(--brand-100));
+  }
+}

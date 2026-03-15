@@ -22,14 +22,17 @@ let JwtGuard = class JwtGuard {
         if (!authHeader) {
             throw new common_1.UnauthorizedException('No token provided');
         }
-        const token = authHeader.split(' ')[1];
+        const [, token] = authHeader.split(' ');
+        if (!token) {
+            throw new common_1.UnauthorizedException('Malformed authorization header');
+        }
         try {
             const decoded = this.jwtService.verify(token);
             request.user = decoded;
             return true;
         }
         catch {
-            throw new common_1.UnauthorizedException('Invalid token');
+            throw new common_1.UnauthorizedException('Invalid or expired token');
         }
     }
 };

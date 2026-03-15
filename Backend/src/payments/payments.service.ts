@@ -5,20 +5,25 @@ import Stripe from 'stripe'
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe
+  private readonly stripe: Stripe | null
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY')
-    if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is not configured')
+    if (secretKey) {
+      this.stripe = new Stripe(secretKey, {
+        apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
+      })
+    } else {
+      this.stripe = null
     }
+  }
 
-    this.stripe = new Stripe(secretKey, {
-      apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
-    })
+  private requireStripe(): Stripe {
+    if (!this.stripe) throw new Error('STRIPE_SECRET_KEY is not configured')
+    return this.stripe
   }
 
   async createPaymentIntentForProject(buyerId: string, projectId: string) {
@@ -36,8 +41,11 @@ export class PaymentsService {
 
     const amount = project.priceInCents
     const currency = project.currency
+    const platformFeeCents = Math.floor(amount * 0.05)
+    const sellerAmountCents = amount - platformFeeCents
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
+    const stripe = this.requireStripe()
+    const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency,
       metadata: {
@@ -54,6 +62,8 @@ export class PaymentsService {
         buyerId,
         projectId,
         amountInCents: amount,
+        platformFeeCents,
+        sellerAmountCents,
         currency,
         status: 'PENDING',
         stripePaymentIntentId: paymentIntent.id,
@@ -72,9 +82,10 @@ export class PaymentsService {
       throw new Error('STRIPE_WEBHOOK_SECRET not configured')
     }
 
+    const stripe = this.requireStripe()
     let event: Stripe.Event
     try {
-      event = this.stripe.webhooks.constructEvent(
+      event = stripe.webhooks.constructEvent(
         rawBody,
         Array.isArray(sig) ? sig[0] : sig || '',
         webhookSecret,
@@ -87,18 +98,104 @@ export class PaymentsService {
       const pi = event.data.object as Stripe.PaymentIntent
       const paymentIntentId = pi.id
 
-      await this.prisma.order.updateMany({
-        where: {
-          stripePaymentIntentId: paymentIntentId,
-          status: 'PENDING',
-        },
-        data: {
-          status: 'COMPLETED',
-        },
+      const order = await this.prisma.order.findFirst({
+        where: { stripePaymentIntentId: paymentIntentId, status: 'PENDING' },
+        include: { project: true },
       })
+      if (order) {
+        const sellerId = order.project.ownerId
+        let wallet = await this.prisma.wallet.findUnique({
+          where: { userId: sellerId },
+        })
+        if (!wallet) {
+          wallet = await this.prisma.wallet.create({
+            data: { userId: sellerId, balanceCents: 0, currency: order.currency },
+          })
+        }
+        const tx = await this.prisma.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            amountCents: order.sellerAmountCents,
+            type: 'SALE_CREDIT',
+            orderId: order.id,
+            metadata: { projectId: order.projectId, buyerId: order.buyerId },
+          },
+        })
+        await this.prisma.wallet.update({
+          where: { id: wallet.id },
+          data: { balanceCents: { increment: order.sellerAmountCents } },
+        })
+        await this.prisma.projectCredential.create({
+          data: {
+            projectId: order.projectId,
+            userId: order.buyerId,
+            orderId: order.id,
+            accessToken: `ps_${order.id}_${Date.now()}`,
+          },
+        })
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'COMPLETED', walletCreditId: tx.id },
+        })
+      }
     }
 
     return { received: true }
+  }
+
+  async getWallet(userId: string) {
+    let wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+      },
+    })
+    if (!wallet) {
+      wallet = await this.prisma.wallet.create({
+        data: { userId, balanceCents: 0, currency: 'usd' },
+        include: { transactions: true },
+      })
+    }
+    return wallet
+  }
+
+  async getMyCredentials(userId: string) {
+    return this.prisma.projectCredential.findMany({
+      where: { userId },
+      include: {
+        project: { select: { id: true, title: true, slug: true } },
+      },
+    })
+  }
+
+  async requestWithdrawal(userId: string, amountCents: number) {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+    })
+    if (!wallet || wallet.balanceCents < amountCents) {
+      throw new BadRequestException('Insufficient balance')
+    }
+    const w = await this.prisma.withdrawal.create({
+      data: { userId, amountCents, status: 'PENDING' },
+    })
+    await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balanceCents: { decrement: amountCents } },
+      }),
+      this.prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amountCents: -amountCents,
+          type: 'WITHDRAWAL',
+          withdrawalId: w.id,
+        },
+      }),
+    ])
+    return w
   }
 }
 

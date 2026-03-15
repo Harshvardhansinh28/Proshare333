@@ -10,6 +10,6 @@
     "Backend"
   ],
   "scripts": {
-    "build": "npm run build -w frontend"
+    "build": "npm run build -w frontend && mv frontend/dist ./dist"
   }
 }
